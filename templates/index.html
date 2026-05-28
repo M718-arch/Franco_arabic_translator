@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Franco-Arabic ABSA | Aspect-Based Sentiment Analysis</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f5f7fa;
+            color: #1a1f36;
+            line-height: 1.5;
+        }
+
+        /* Top Navigation */
+        .navbar {
+            background: white;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 0 32px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-brand {
+            font-weight: 600;
+            font-size: 18px;
+            color: #1a1f36;
+            letter-spacing: -0.3px;
+        }
+
+        .nav-brand span {
+            color: #3b82f6;
+        }
+
+        .nav-status {
+            margin-left: auto;
+            font-size: 13px;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #10b981;
+        }
+
+        .status-dot.warning {
+            background: #f59e0b;
+        }
+
+        .status-dot.error {
+            background: #ef4444;
+        }
+
+        /* Main Layout */
+        .app-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 32px;
+        }
+
+        /* Two Column Grid */
+        .two-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 32px;
+        }
+
+        /* Cards */
+        .card {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid #e2e8f0;
+            background: #fafbfc;
+        }
+
+        .card-header h2 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1a1f36;
+            margin-bottom: 4px;
+        }
+
+        .card-header p {
+            font-size: 13px;
+            color: #64748b;
+        }
+
+        .card-body {
+            padding: 24px;
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: #1a1f36;
+            margin-bottom: 8px;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            resize: vertical;
+            transition: all 0.15s ease;
+            background: white;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+        }
+
+        /* Rating Selector */
+        .rating-selector {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .rating-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            background: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            font-size: 14px;
+        }
+
+        .rating-btn:hover {
+            border-color: #3b82f6;
+            background: #f0f5ff;
+        }
+
+        .rating-btn.active {
+            background: #3b82f6;
+            border-color: #3b82f6;
+            color: white;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            border: 1px solid transparent;
+        }
+
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+
+        .btn-secondary {
+            background: white;
+            border-color: #cbd5e1;
+            color: #1a1f36;
+        }
+
+        .btn-secondary:hover {
+            background: #f8fafc;
+            border-color: #94a3b8;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 8px;
+        }
+
+        /* Results Table */
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .results-table th {
+            text-align: left;
+            padding: 12px 0;
+            font-size: 12px;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .results-table td {
+            padding: 12px 0;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 14px;
+        }
+
+        .sentiment-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .sentiment-positive {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .sentiment-negative {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .sentiment-neutral {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        .confidence-bar {
+            width: 100%;
+            height: 4px;
+            background: #e2e8f0;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 6px;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            background: #3b82f6;
+            border-radius: 2px;
+            transition: width 0.2s ease;
+        }
+
+        /* Metadata Section */
+        .metadata {
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .metadata-row {
+            display: flex;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .metadata-label {
+            width: 100px;
+            color: #64748b;
+        }
+
+        .metadata-value {
+            color: #1a1f36;
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        /* Loading Overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .loading-spinner {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 2px solid #e2e8f0;
+            border-top-color: #3b82f6;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            margin: 0 auto 12px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 48px 24px;
+            color: #94a3b8;
+        }
+
+        /* Right Panel */
+        .right-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+        }
+
+        /* Translation Panel */
+        .translation-panel {
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+
+        .translation-text {
+            font-size: 14px;
+            line-height: 1.6;
+            color: #1a1f36;
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .two-columns {
+                grid-template-columns: 1fr;
+            }
+            .app-container {
+                padding: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">ABSA <span>| Franco-Arabic</span></div>
+        <div class="nav-status">
+            <div class="status-dot" id="statusDot"></div>
+            <span id="statusText">Initializing</span>
+        </div>
+    </nav>
+
+    <div class="app-container">
+        <div class="two-columns">
+            <!-- Left Column: Input -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Review Input</h2>
+                    <p>Enter customer feedback in Arabic, English, or Franco-Arabic</p>
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label>Review text</label>
+                        <textarea id="reviewText" rows="5" placeholder="Example:&#10;El akol kaan 7elw gedan, bas el khidma bt2a5er...&#10;&#10;الاكل كان حلو جدا لكن الخدمة بطيئة&#10;&#10;The food was great but delivery took too long"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Star rating</label>
+                        <div class="rating-selector" id="ratingSelector">
+                            <button class="rating-btn" data-rating="1">1</button>
+                            <button class="rating-btn" data-rating="2">2</button>
+                            <button class="rating-btn active" data-rating="3">3</button>
+                            <button class="rating-btn" data-rating="4">4</button>
+                            <button class="rating-btn" data-rating="5">5</button>
+                        </div>
+                    </div>
+
+                    <div class="btn-group">
+                        <button class="btn btn-primary" id="analyzeBtn">Analyze</button>
+                        <button class="btn btn-secondary" id="translateBtn">Translate to Arabic</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Results -->
+            <div class="right-panel">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Aspect Analysis</h2>
+                        <p>Detected aspects and sentiment scores</p>
+                    </div>
+                    <div class="card-body">
+                        <div id="analysisResults">
+                            <div class="empty-state">
+                                Enter a review and click Analyze
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" id="translationCard" style="display: none;">
+                    <div class="card-header">
+                        <h2>Arabic Translation</h2>
+                        <p>Franco-Arabic transliteration</p>
+                    </div>
+                    <div class="card-body">
+                        <div id="translationResults"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner">
+            <div class="spinner"></div>
+            <div>Processing...</div>
+        </div>
+    </div>
+
+    <script>
+        let currentRating = 3;
+
+        // DOM Elements
+        const reviewText = document.getElementById('reviewText');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const translateBtn = document.getElementById('translateBtn');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const analysisResults = document.getElementById('analysisResults');
+        const translationCard = document.getElementById('translationCard');
+        const translationResults = document.getElementById('translationResults');
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+
+        // Initialize rating selector
+        function initRatingSelector() {
+            const btns = document.querySelectorAll('.rating-btn');
+            btns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    btns.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    currentRating = parseInt(btn.dataset.rating);
+                });
+            });
+        }
+
+        // Update status
+        async function updateStatus() {
+            try {
+                const res = await fetch('/api/status');
+                const data = await res.json();
+                if (data.loaded) {
+                    statusDot.className = data.demo_mode ? 'status-dot warning' : 'status-dot';
+                    statusText.textContent = data.demo_mode ? 'Demo Mode' : 'Ready';
+                } else {
+                    statusDot.className = 'status-dot error';
+                    statusText.textContent = 'Not Loaded';
+                }
+            } catch (e) {
+                statusDot.className = 'status-dot error';
+                statusText.textContent = 'Offline';
+            }
+        }
+
+        // Analyze sentiment
+        async function analyzeSentiment() {
+            const text = reviewText.value.trim();
+            if (!text) {
+                alert('Please enter a review');
+                return;
+            }
+
+            loadingOverlay.style.display = 'flex';
+            translationCard.style.display = 'none';
+
+            try {
+                const res = await fetch('/api/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        text: text,
+                        star_rating: currentRating,
+                        threshold: 0.35
+                    })
+                });
+                const data = await res.json();
+                renderAnalysis(data);
+            } catch (err) {
+                alert('Error: ' + err.message);
+            } finally {
+                loadingOverlay.style.display = 'none';
+            }
+        }
+
+        // Translate only
+        async function translateOnly() {
+            const text = reviewText.value.trim();
+            if (!text) {
+                alert('Please enter text to translate');
+                return;
+            }
+
+            loadingOverlay.style.display = 'flex';
+
+            try {
+                const res = await fetch('/api/translate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: text })
+                });
+                const data = await res.json();
+                renderTranslation(data);
+            } catch (err) {
+                alert('Error: ' + err.message);
+            } finally {
+                loadingOverlay.style.display = 'none';
+            }
+        }
+
+        // Render analysis results
+        function renderAnalysis(data) {
+            if (!data.aspects || data.aspects.length === 0) {
+                analysisResults.innerHTML = '<div class="empty-state">No aspects detected</div>';
+                return;
+            }
+
+            let html = `
+                <table class="results-table">
+                    <thead>
+                        <tr><th>Aspect</th><th>Sentiment</th><th>Confidence</th></tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            for (const aspect of data.aspects) {
+                const sentiment = data.aspect_sentiments[aspect] || 'neutral';
+                const prob = data.aspect_probs ? data.aspect_probs[aspect] : 0;
+                const percent = prob ? (prob * 100).toFixed(1) : '—';
+                
+                let sentimentClass = 'sentiment-neutral';
+                if (sentiment === 'positive') sentimentClass = 'sentiment-positive';
+                if (sentiment === 'negative') sentimentClass = 'sentiment-negative';
+
+                html += `
+                    <tr>
+                        <td style="font-weight: 500;">${aspect}</td>
+                        <td><span class="sentiment-badge ${sentimentClass}">${sentiment}</span></td>
+                        <td style="width: 40%;">
+                            ${prob ? `
+                                <span style="font-size: 12px; color: #64748b;">${percent}%</span>
+                                <div class="confidence-bar">
+                                    <div class="confidence-fill" style="width: ${percent}%;"></div>
+                                </div>
+                            ` : '—'}
+                        </td>
+                    </tr>
+                `;
+            }
+
+            html += `
+                    </tbody>
+                </table>
+                <div class="metadata">
+                    <div class="metadata-row">
+                        <div class="metadata-label">Cleaned text</div>
+                        <div class="metadata-value">${escapeHtml(data.clean || '—')}</div>
+                    </div>
+                    <div class="metadata-row">
+                        <div class="metadata-label">Detected language</div>
+                        <div class="metadata-value">${data.detected_lang || '—'} ${data.was_franco ? '(Franco-Arabic)' : ''}</div>
+                    </div>
+                    <div class="metadata-row">
+                        <div class="metadata-label">Star rating</div>
+                        <div class="metadata-value">${data.star_rating || currentRating}/5</div>
+                    </div>
+                </div>
+            `;
+
+            analysisResults.innerHTML = html;
+        }
+
+        // Render translation
+        function renderTranslation(data) {
+            translationCard.style.display = 'block';
+            translationResults.innerHTML = `
+                <div style="margin-bottom: 16px;">
+                    <div style="font-size: 12px; color: #64748b; margin-bottom: 8px;">Original</div>
+                    <div style="font-size: 14px; color: #1a1f36;">${escapeHtml(data.original || '')}</div>
+                </div>
+                <div>
+                    <div style="font-size: 12px; color: #64748b; margin-bottom: 8px;">Arabic script</div>
+                    <div style="font-size: 16px; font-family: 'Segoe UI', 'Traditional Arabic', serif; line-height: 1.6;" dir="rtl">${escapeHtml(data.translated || '')}</div>
+                </div>
+                <div class="metadata" style="margin-top: 16px; padding-top: 16px;">
+                    <div class="metadata-row">
+                        <div class="metadata-label">Dialect</div>
+                        <div class="metadata-value">${data.detected_dialect || '—'}</div>
+                    </div>
+                    <div class="metadata-row">
+                        <div class="metadata-label">Context</div>
+                        <div class="metadata-value">${data.detected_context || '—'}</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Event listeners
+        analyzeBtn.addEventListener('click', analyzeSentiment);
+        translateBtn.addEventListener('click', translateOnly);
+        
+        // Keyboard shortcut: Ctrl+Enter to analyze
+        reviewText.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                analyzeSentiment();
+            }
+        });
+
+        // Initialize
+        initRatingSelector();
+        updateStatus();
+        setInterval(updateStatus, 5000);
+    </script>
+</body>
+</html>
